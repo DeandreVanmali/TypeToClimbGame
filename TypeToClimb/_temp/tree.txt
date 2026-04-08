@@ -1,0 +1,100 @@
+TypeToClimb/
+├─ app/ #new nextjs + shadcn web app
+│  ├─ public/
+│  │  ├─ file.svg
+│  │  ├─ globe.svg
+│  │  ├─ next.svg
+│  │  ├─ vercel.svg
+│  │  └─ window.svg
+│  ├─ src/
+│  │  ├─ app/
+│  │  │  ├─ favicon.ico
+│  │  │  ├─ globals.css
+│  │  │  ├─ layout.tsx
+│  │  │  └─ page.tsx
+│  │  ├─ components/
+│  │  │  └─ ui/
+│  │  │     └─ button.tsx
+│  │  └─ lib/
+│  │     └─ utils.ts
+│  ├─ .gitignore
+│  ├─ components.json
+│  ├─ eslint.config.mjs
+│  ├─ next.config.ts
+│  ├─ package-lock.json
+│  ├─ package.json
+│  ├─ postcss.config.mjs
+│  ├─ README.md
+│  └─ tsconfig.json
+├─ frontend_old/ #old web page
+│  ├─ apps/
+│  │  ├─ server/
+│  │  │  ├─ dist/
+│  │  │  │  ├─ index.js
+│  │  │  │  ├─ leaderboard.js
+│  │  │  │  └─ logic.js
+│  │  │  ├─ prisma/
+│  │  │  │  └─ schema.prisma
+│  │  │  ├─ src/
+│  │  │  │  ├─ index.ts
+│  │  │  │  ├─ leaderboard.ts
+│  │  │  │  └─ logic.ts
+│  │  │  ├─ package-lock.json
+│  │  │  ├─ package.json
+│  │  │  └─ tsconfig.json
+│  │  └─ web/
+│  │     ├─ dist/
+│  │     │  ├─ assets/
+│  │     │  │  ├─ index-Bwrfauel.css
+│  │     │  │  └─ index-CklYEN9-.js
+│  │     │  └─ index.html
+│  │     ├─ src/
+│  │     │  ├─ components/
+│  │     │  │  ├─ AnimalPicker.tsx
+│  │     │  │  ├─ CharacterSelectModal.tsx
+│  │     │  │  ├─ CreateLobby.tsx
+│  │     │  │  ├─ GameInput.tsx
+│  │     │  │  ├─ GameMenu.tsx
+│  │     │  │  ├─ GameStats.tsx
+│  │     │  │  ├─ HostPage.tsx
+│  │     │  │  ├─ Join.tsx
+│  │     │  │  ├─ JoinLobby.tsx
+│  │     │  │  ├─ JungleIcon.tsx
+│  │     │  │  ├─ Leaderboard.tsx
+│  │     │  │  ├─ LeaderboardOverlay.tsx
+│  │     │  │  ├─ ModeSelector.tsx
+│  │     │  │  ├─ VineClimber.tsx
+│  │     │  │  └─ VineDisplay.tsx
+│  │     │  ├─ data/
+│  │     │  │  └─ animals.ts
+│  │     │  ├─ hooks/
+│  │     │  │  ├─ useGame.ts
+│  │     │  │  ├─ useLeaderboard.ts
+│  │     │  │  └─ UseLobby.ts
+│  │     │  ├─ styles/
+│  │     │  │  └─ tailwind.css
+│  │     │  ├─ App.tsx
+│  │     │  └─ main.tsx
+│  │     ├─ index.html
+│  │     ├─ package.json
+│  │     ├─ postcss.config.cjs
+│  │     ├─ tailwind.config.ts
+│  │     ├─ tsconfig.json
+│  │     └─ vite.config.ts
+│  ├─ packages/
+│  │  └─ shared/
+│  │     ├─ dist/
+│  │     │  ├─ types.d.ts
+│  │     │  └─ types.js
+│  │     ├─ src/
+│  │     │  └─ types.ts
+│  │     ├─ package.json
+│  │     └─ tsconfig.json
+│  ├─ .env.example
+│  ├─ .gitignore
+│  ├─ package-lock.json
+│  ├─ package.json
+│  ├─ PLAN.md
+│  ├─ README.md
+│  └─ setup-windows.ts
+└─ scripts/
