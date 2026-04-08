@@ -18,26 +18,27 @@ from flask_cors import CORS
 CLIENT_URL = os.getenv("CLIENT_URL", "http://localhost:3000")
 PORT = int(os.getenv("PORT", 5000))
 
-# Allow multiple origins for development (localhost + network access)
-ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://0.0.0.0:3000",
-]
-# Add network IPs if CLIENT_URL is different
-if CLIENT_URL not in ALLOWED_ORIGINS:
-    ALLOWED_ORIGINS.append(CLIENT_URL)
+# Build allowed origins list from CLIENT_URL env var
+# Supports comma-separated list e.g. "https://app.vercel.app,http://localhost:3000"
+ALLOWED_ORIGINS = [origin.strip() for origin in CLIENT_URL.split(",") if origin.strip()]
+
+# Always include localhost for dev
+for dev_origin in ["http://localhost:3000", "http://127.0.0.1:3000"]:
+    if dev_origin not in ALLOWED_ORIGINS:
+        ALLOWED_ORIGINS.append(dev_origin)
+
+print(f"[Server] Allowed CORS origins: {ALLOWED_ORIGINS}")
 
 # ─── Flask + SocketIO Setup ───────────────────────────────────────────────────
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "jungle-secret")
 CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
 sio = SocketIO(
-    app, 
-    cors_allowed_origins="*",  # Allow all origins in development
+    app,
+    cors_allowed_origins=ALLOWED_ORIGINS,
     async_mode="eventlet",
-    logger=True,
-    engineio_logger=True,
+    logger=False,
+    engineio_logger=False,
     ping_timeout=60000,
     ping_interval=25000
 )
@@ -73,4 +74,3 @@ if __name__ == "__main__":
     print(f"[Server] Socket.IO CORS: * (all origins)")
     print(f"[Server] Listening on http://0.0.0.0:{PORT}")
     sio.run(app, host="0.0.0.0", port=PORT, debug=False)
-
