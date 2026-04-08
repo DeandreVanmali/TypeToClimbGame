@@ -51,7 +51,11 @@ function GameContent() {
 
   useEffect(() => {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || `http://${window.location.hostname}:5000`;
-    const socket = io(backendUrl);
+    const socket = io(backendUrl, {
+      transports: ['polling', 'websocket'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+    });
     socketRef.current = socket;
     sessionStartTimeRef.current = Date.now();
     currentWordStartedAtRef.current = Date.now();
@@ -169,6 +173,7 @@ function GameContent() {
           <div className="h-[80vh] rounded-lg shadow-lg overflow-hidden relative">
             <VineDisplay
               height={height}
+              targetHeight={TARGET_HEIGHT}
               animal={animal}
               gameComplete={gameComplete}
             />
