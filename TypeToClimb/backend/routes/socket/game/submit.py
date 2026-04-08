@@ -1,76 +1,100 @@
-"""
-TypeToClimb Backend Server
-Entry point for the Flask + SocketIO application
-"""
-import os
-from dotenv import load_dotenv
+"""submit event - Submit a typed word"""
+from flask import request
+from flask_socketio import emit
 
-load_dotenv()
 
-import eventlet
-eventlet.monkey_patch()
+def on_submit(payload):
+    """
+    Handle word submission from player
 
-from flask import Flask
-from flask_socketio import SocketIO
-from flask_cors import CORS
+    Args:
+        payload (dict): {"typed": str, "timeMs": int}
+    """
+    from application.game_manager import (
+        get_player,
+        update_player_progress,
+        reset_player,
+        generate_new_word,
+        ROUND_TARGET_HEIGHT,
+    )
+    from application.scoring import calc_score
+    from data.leaderboard import insert_score
+    from application.lobby_manager import get_game_lobby_code, get_game_sids_for_lobby, end_lobby_match
+    sid = request.sid
+    player = get_player(sid)
 
-# ─── Config ───────────────────────────────────────────────────────────────────
-CLIENT_URL = os.getenv("CLIENT_URL", "http://localhost:3000")
-PORT = int(os.getenv("PORT", 5000))
+    if not player or not player["current_word"]:
+        return
 
-# Build allowed origins list from CLIENT_URL env var
-# Supports comma-separated list e.g. "https://app.vercel.app,http://localhost:3000"
-ALLOWED_ORIGINS = [origin.strip() for origin in CLIENT_URL.split(",") if origin.strip()]
+    typed = payload.get("typed", "")
+    time_ms = payload.get("timeMs", 0)
+    word = player["current_word"]["text"]
+    lobby_code = get_game_lobby_code(sid)
 
-# Always include localhost for dev
-for dev_origin in ["http://localhost:3000", "http://127.0.0.1:3000"]:
-    if dev_origin not in ALLOWED_ORIGINS:
-        ALLOWED_ORIGINS.append(dev_origin)
+    if typed.lower().strip() == word.lower():
+        inc, acc = calc_score(word, typed, time_ms)
+        updated_player = update_player_progress(sid, inc, acc, time_ms)
 
-print(f"[Server] Allowed CORS origins: {ALLOWED_ORIGINS}")
+        emit("progress", {
+            "height": min(updated_player["height"], ROUND_TARGET_HEIGHT),
+            "lastIncrement": inc,
+            "accuracy": acc,
+            "timeMs": time_ms,
+            "rounds": updated_player["rounds"],
+        })
 
-# ─── Flask + SocketIO Setup ───────────────────────────────────────────────────
-app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "jungle-secret")
-CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
-sio = SocketIO(
-    app,
-    cors_allowed_origins=ALLOWED_ORIGINS,
-    async_mode="eventlet",
-    logger=False,
-    engineio_logger=False,
-    ping_timeout=60000,
-    ping_interval=25000
-)
+        if updated_player["height"] >= ROUND_TARGET_HEIGHT:
+            player_name = updated_player.get("name", "Player")
+            player_animal = updated_player.get("animal", "monkey")
+            final_score = updated_player["total_height"]
 
-# ─── Register Routes ──────────────────────────────────────────────────────────
-# REST API Routes
-from routes.api.leaderboard import get_leaderboard, post_leaderboard
-from routes.api import health
+            try:
+                insert_score(player_name, player_animal, final_score)
+                print(f"[Game] Saved score: {player_name} ({player_animal}) = {final_score}")
+            except Exception as e:
+                print(f"[Game] Failed to save score: {e}")
 
-get_leaderboard.register(app)
-post_leaderboard.register(app)
-health.register(app)
+            if lobby_code:
+                import flask
+                current_socketio = flask.current_app.extensions['socketio']
+                game_sids = get_game_sids_for_lobby(lobby_code)
+                for game_sid in game_sids:
+                    recipient = get_player(game_sid)
+                    current_socketio.emit("match_finished", {
+                        "winner": player_name,
+                        "finalHeight": recipient["total_height"] if recipient else 0,
+                        "rounds": recipient["rounds"] if recipient else 0,
+                    }, room=game_sid)
+                print(f"[Game] Multiplayer match finished! Winner: {player_name} in lobby {lobby_code}")
+                for game_sid in game_sids:
+                    reset_player(game_sid)
+                end_lobby_match(lobby_code)
+            else:
+                emit("game_complete", {
+                    "finalHeight": updated_player["total_height"],
+                    "rounds": updated_player["rounds"],
+                })
+                reset_player(sid)
+            return
 
-# Socket Event Routes
-from routes.socket import connection
-from routes.socket.game import join_public, request_word, submit, join_game_session
-from routes.socket.lobby import auto_join_lobby, countdown, start_game, set_difficulty
+        new_word = generate_new_word(sid, lobby_code=lobby_code)
+        current_player = get_player(sid)
+        if not current_player or not new_word:
+            return
 
-connection.register(sio)
-join_public.register(sio)
-request_word.register(sio)
-submit.register(sio)
-join_game_session.register(sio)
-auto_join_lobby.register(sio)
-countdown.register(sio)
-start_game.register(sio)
-set_difficulty.register(sio)
+        emit("word", new_word)
+        return
 
-# ─── Entry point ──────────────────────────────────────────────────────────────
-if __name__ == "__main__":
-    print(f"[Server] Starting TypeToClimb backend")
-    print(f"[Server] Allowed CORS origins: {ALLOWED_ORIGINS}")
-    print(f"[Server] Socket.IO CORS: * (all origins)")
-    print(f"[Server] Listening on http://0.0.0.0:{PORT}")
-    sio.run(app, host="0.0.0.0", port=PORT, debug=False)
+    emit("progress", {
+        "height": player["height"],
+        "lastIncrement": 0,
+        "accuracy": 0,
+        "timeMs": time_ms,
+        "rounds": player["rounds"],
+    })
+    emit("word", player["current_word"])
+
+
+def register(socketio):
+    """Register this event with SocketIO"""
+    socketio.on("submit")(on_submit)
